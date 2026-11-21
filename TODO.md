@@ -4,30 +4,32 @@
 
 The MVP covers one workflow: describe variables in one file, validate them, keep the values in git encrypted with per-environment keys, and export them to `.env` for running the app.
 
+**Status:** implemented in Go: [cmd/loudtsss](cmd/loudtsss) and [internal/loudtsss](internal/loudtsss), with end-to-end tests (`go test ./...`).
+
 ### Decisions
 
-- [ ] **The config file is JSON**, not `.ts`: `pack`/`unpack` rewrite the file, which is only reliable for JSON. A JSON Schema generated from [types.ts](types.ts) provides IDE autocompletion; the TS types stay for the library.
-- [ ] **`environments` becomes a record in the MVP** (see [Types](#types)): the validator needs `protected` to know where plaintext secrets are forbidden. It is a breaking change, so it is done before the first release.
-- [ ] **A secret cannot have a shared `value`**, only per-environment `values`. This removes the open question of keeping per-environment copies in sync.
-- [ ] **Symmetric keys only.** Asymmetric keys come later as a new block format (`enc:v2:`); `enc:v1:` stays readable.
-- [ ] **Storage: git only**, blocks inline in the committed file.
+- [x] **The config file is JSON**, not `.ts`: `pack`/`unpack` rewrite the file, which is only reliable for JSON. A JSON Schema generated from [types.ts](types.ts) provides IDE autocompletion; the TS types stay for the library.
+- [x] **`environments` becomes a record in the MVP** (see [Types](#types)): the validator needs `protected` to know where plaintext secrets are forbidden. It is a breaking change, so it is done before the first release.
+- [x] **No shared values.** Values live only in the blocks, one environment at a time; `value` exists only in the working file, and `values` is rejected in both files (open question: keep it for authoring and import, or drop it). This removes the question of keeping per-environment copies in sync.
+- [x] **Symmetric keys only.** Asymmetric keys come later as a new block format (`enc:v2:`); `enc:v1:` stays readable.
+- [x] **Storage: git only**, blocks inline in the committed file.
 
 ### In scope
 
-- [ ] Schema: the current `VarType` kinds plus `enum`; `value`/`values`, `required`/`allowEmpty` with `EnvCondition`, `sensitivity`, `exposure`, `description`, `example`.
-- [ ] `group`, `tags`, `aliases`, `deprecated` are accepted by the schema but have no runtime behavior (except the "`deprecated` together with `required` is an error" check).
-- [ ] Validator: every item in [Runtime checks](#runtime-checks) except `seed` and strict mode. Errors are loud: report all of them at once, each with the variable and the environment.
-- [ ] Encryption: AES-256-GCM, one block per environment, AAD with the environment name, `pending`/`encrypted` states.
-- [ ] Integrity: copies of `sensitivity` and `exposure` in each block, compared with the schema. The variable list is compared loosely: a variable missing from a block is not set there, an extra one is a warning (see [Integrity checks](#integrity-checks)).
-- [ ] A `version` counter in each block from the start, so rollback protection can be added later without changing the format.
-- [ ] CLI commands:
+- [x] Schema: the current `VarType` kinds plus `enum`; `value` (working file only), `required`/`allowEmpty` with `EnvCondition`, `sensitivity`, `exposure`, `description`, `example`.
+- [x] `group`, `tags`, `aliases`, `deprecated` are accepted by the schema but have no runtime behavior (except the "`deprecated` together with `required` is an error" check).
+- [x] Validator: every item in [Runtime checks](#runtime-checks) except `seed` and strict mode. Errors are loud: report all of them at once, each with the variable and the environment.
+- [x] Encryption: AES-256-GCM, one block per environment, AAD with the environment name, `pending`/`encrypted` states.
+- [x] Integrity: copies of `sensitivity` and `exposure` in each block, compared with the schema. The variable list is compared loosely: a variable missing from a block is not set there, an extra one is a warning (see [Integrity checks](#integrity-checks)).
+- [x] A `version` counter in each block from the start, so rollback protection can be added later without changing the format.
+- [x] CLI commands:
   - `keygen <env>`: generate an environment key;
   - `unpack <env>`: build the working file from the committed file;
   - `pack`: encrypt `pending` values, re-encrypt only the blocks that changed;
   - `check`: validate, no plaintext secrets in protected environments, the committed file is up to date (the same command runs in CI);
   - `export <env>`: write a `.env` file; also generate `.env.example`.
-- [ ] Keys are read from an environment variable or from a file outside the repository.
-- [ ] Git hook: pre-commit only, it runs `check` and rejects the commit if the working file is staged. It does not build the committed file itself; it fails and tells the user to run `pack`.
+- [x] Keys are read from an environment variable or from a file outside the repository.
+- [x] Git hook: pre-commit only, it runs `check` and rejects the commit if the working file is staged. It does not build the committed file itself; it fails and tells the user to run `pack`.
 
 ### If time permits
 
@@ -41,22 +43,22 @@ The MVP covers one workflow: describe variables in one file, validate them, keep
 ## Backlog
 
 - [ ] In strict mode the fields `description`, `type`, `value`/`values`, `required`, `allowEmpty`, `sensitivity`, `exposure` are mandatory.
-- [ ] Add `value` `kind` concordance type check.
-- [ ] Different encryption keys for different environments 
+- [x] Add `value` `kind` concordance type check.
+- [x] Different encryption keys for different environments 
 
 ## Runtime checks
 
 Taking all decisions into account, the validator needs to check:
-- [ ] the JS type of the value matches `kind` (`number` → `int`/`float`/`port`, `boolean` → `bool`);
-- [ ] the value satisfies the type constraints (`min`, `max`, `pattern`, `enum` `values`, etc.);
-- [ ] keys in `values` and environments in `EnvCondition` are listed in `environments`;
-- [ ] `environments` has no duplicates;
-- [ ] the JSON has no duplicate variable keys;
-- [ ] `deprecated` together with `required` is an error;
+- [x] the JS type of the value matches `kind` (`number` → `int`/`float`/`port`, `boolean` → `bool`);
+- [x] the value satisfies the type constraints (`min`, `max`, `pattern`, `enum` `values`, etc.);
+- [x] keys in `values` and environments in `EnvCondition` are listed in `environments`;
+- [x] `environments` has no duplicates;
+- [x] the JSON has no duplicate variable keys;
+- [x] `deprecated` together with `required` is an error;
 - [ ] `seed` on a variable with `sensitivity: "secret"` is an error;
-- [ ] `sensitivity: "secret"` together with `exposure: "client"` is an error;
+- [x] `sensitivity: "secret"` together with `exposure: "client"` is an error;
 - [ ] in strict mode all mandatory fields are set.
-- [ ] all "secrets" (sensitive values) must be stored encrypted in the config, and decrypted at load time.
+- [x] all "secrets" (sensitive values) must be stored encrypted in the config, and decrypted at load time.
 
 ## Utility
 

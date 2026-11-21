@@ -2,13 +2,13 @@
 
 Typed environment config in one file: variable types, per-environment values, encrypted secrets and metadata. Secrets stay quiet, errors stay loud.
 
-> **Status:** early design. The repo contains the TypeScript types ([types.ts](types.ts)) and an interactive explainer ([docs/how-it-works.html](docs/how-it-works.html)) that runs the planned workflow in the browser with real encryption. The validator, the loader and the CLI are not implemented yet. See the MVP scope in [TODO.md](TODO.md#mvp-scope).
+> **Status:** MVP. The `loudtsss` CLI is written in Go ([cmd/loudtsss](cmd/loudtsss), [internal/loudtsss](internal/loudtsss)); [types.ts](types.ts) describes the file format in TypeScript, and [docs/how-it-works.html](docs/how-it-works.html) is an interactive explainer that runs the workflow in the browser with real encryption. See the MVP scope in [TODO.md](TODO.md#mvp-scope).
 
 > [!WARNING]
-> **Before you start working with an encrypted config** (planned workflow, the utility is not implemented yet):
+> **Before you start working with an encrypted config:**
 >
 > 1. **Ignore the working file.** Add the working file (`loudtsss.local.json`) and every file the utility exports (e.g. `.env`) to `.gitignore`. They contain decrypted values and must never reach git.
-> 2. **Install the git hook.** The pre-commit hook runs `check`: the committed file is up to date, holds no plaintext values, and the working file is not staged. Hooks run only locally, so the same check must also run in CI.
+> 2. **Install the git hook** with `loudtsss install-hook`. The pre-commit hook runs `loudtsss check --hook`: the committed file is up to date, holds no plaintext values, and the working file is not staged. Hooks run only locally, so the same check must also run in CI.
 > 3. **Get the key for your environment only.** Store it outside the repository and never commit it. You do not need, and should not have, keys for environments you do not work with.
 > 4. **Unpack before editing.** Unpack the config for your environment and edit only the working file; never edit the encrypted blocks by hand.
 > 5. **Do not bypass the safeguards.** Never use `git commit --no-verify` or `git add -f` on the working file.
@@ -20,17 +20,43 @@ The config is a JSON file that exists in two forms:
 - **Committed file**, `loudtsss.json`, stored in git: the schema (variables with their metadata, without values) plus one encrypted block per environment. A block holds **all** values of its environment, public and secret, and is encrypted with that environment's key. Nobody can read, swap, remove or replace a value without the key.
 - **Working file**, `loudtsss.local.json`, ignored by git: the config unpacked for one environment. Non-secret values are decrypted into place; secrets stay in the block and appear as `{ "kind": "encrypted", "state": "encrypted" }`.
 
-The planned CLI commands:
+To see each step, and what catches a tampered block or a plaintext secret, open [docs/how-it-works.html](docs/how-it-works.html) in a browser.
+
+## Install
+
+Requires Go 1.24 or later. From a clone of this repository:
+
+```sh
+go build -o loudtsss ./cmd/loudtsss
+```
+
+Put the binary somewhere in your `PATH`; the pre-commit hook calls `loudtsss` by name.
+
+## Commands
 
 | Command | What it does |
 |---|---|
-| `keygen <env>` | Generates the key of an environment. The key is stored outside the repository |
-| `unpack <env>` | Decrypts the environment's block and writes the working file |
-| `pack` | Validates the working file, encrypts `pending` values and re-encrypts only the blocks that changed, so unchanged blocks keep their ciphertext and stay out of diffs |
-| `check` | Validates the committed file and every block it has a key for. Run by the pre-commit hook and in CI |
-| `export <env>` | Decrypts an environment into `.env` and generates `.env.example` from the schema |
+| `loudtsss keygen <env>` | Generates the key of an environment, saves it outside the repository and adds the environment's first, empty block to `loudtsss.json` |
+| `loudtsss unpack <env>` | Decrypts the environment's block and writes the working file. Refuses to overwrite unpacked changes unless `--force` |
+| `loudtsss pack` | Validates the working file, encrypts `pending` values and re-encrypts only the blocks that changed, so unchanged blocks keep their ciphertext and stay out of diffs |
+| `loudtsss check` | Validates the committed file and every block it has a key for. `--hook` adds the git checks of the pre-commit hook; `--all-keys` fails when a block cannot be verified for lack of a key (for CI) |
+| `loudtsss export <env>` | Decrypts an environment into `.env` (mode 600) and writes `.env.example` from the schema. Refuses to write a file that git does not ignore unless `--force`; `-o -` prints to stdout |
+| `loudtsss install-hook` | Installs the pre-commit hook |
 
-To see each step, and what catches a tampered block or a plaintext secret, open [docs/how-it-works.html](docs/how-it-works.html) in a browser.
+Common flags: `-c/--config` (default `loudtsss.json`), `-w/--working` (default `loudtsss.local.json`), `--keys-dir`. Exit codes: `0` success, `1` validation or check failed, `2` usage error. Every error names the environment and the variable, and all errors are reported at once.
+
+**Keys.** A key looks like `loudtsss-key:v1:<keyId>:<base64>`. `loudtsss` reads it from `LOUD_T_S_S_S_KEY_<ENV>` (e.g. `LOUD_T_S_S_S_KEY_PRODUCTION`; use this in CI) or from `<keys-dir>/<keyId>.key`. The keys directory is `--keys-dir`, else `LOUD_T_S_S_S_KEYS_DIR`, else `loud-t-s-s-s/keys` in the user config directory (`~/Library/Application Support` on macOS, `~/.config` on Linux). Key files must not be readable by other users.
+
+A typical first run:
+
+```sh
+loudtsss keygen development           # once per environment
+loudtsss unpack development           # writes loudtsss.local.json
+# edit loudtsss.local.json: set values, write secrets as pending
+loudtsss pack                         # encrypts into loudtsss.json
+loudtsss check
+loudtsss export development           # writes .env and .env.example
+```
 
 ## Example
 
