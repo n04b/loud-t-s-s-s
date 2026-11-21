@@ -1,11 +1,14 @@
 import type { Configuration } from "./types";
 
-const environments = ["development", "staging", "production"] as const;
-type Env = (typeof environments)[number];
+type Env = "development" | "staging" | "production";
 
 export const config: Configuration<Env> = {
   version: 1,
-  environments,
+  environments: {
+    development: {},
+    staging: { protected: true },
+    production: { protected: true },
+  },
   variables: {
     PORT: {
       type: { kind: "port" },
@@ -14,6 +17,11 @@ export const config: Configuration<Env> = {
         staging: 80,
         production: 80
       }
-    }
+    },
+    LOG_LEVEL: {
+      type: { kind: "enum", values: ["debug", "info", "warn", "error"] },
+      sensitivity: "public",
+      exposure: "server",
+    },
   },
 };

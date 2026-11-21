@@ -1063,10 +1063,10 @@ const TYPES = [
     ] },
   { name: "WorkingFile", s: "mvp", illus: true,
     desc: "<code>loudtsss.local.json</code>: the config unpacked for one environment. Gitignored. The shape is illustrative.",
-    sig: "type WorkingFile<Environment extends string> = {\n  environment: Environment;\n  variables: Record<string, Variable<Environment> & { value?: Value }>;\n};",
+    sig: "type WorkingFile<Environment extends string> = {\n  environment: Environment;\n  variables: Record<string, Variable<Environment>>; // the schema with this environment's value\n};",
     cols: PROPS, rows: [
       R("environment", "Environment", "required", "The unpacked environment; <code>pack</code> writes into its block."),
-      R("variables", "Record<string, Variable & { value?: Value }>", "required", "The schema with this environment's values. Adding or removing a variable here needs only this environment's key; changing <code>sensitivity</code>/<code>exposure</code> needs every key."),
+      R("variables", "Record<string, Variable>", "required", "The schema with this environment's values. Adding or removing a variable here needs only this environment's key; changing <code>sensitivity</code>/<code>exposure</code> needs every key."),
     ] },
 ];
 const TYPE_NAMES = TYPES.map((t) => t.name).sort((a, b) => b.length - a.length);
