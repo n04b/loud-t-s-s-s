@@ -1,5 +1,45 @@
 # TODO
 
+## MVP scope
+
+The MVP covers one workflow: describe variables in one file, validate them, keep the values in git encrypted with per-environment keys, and export them to `.env` for running the app.
+
+### Decisions
+
+- [ ] **The config file is JSON**, not `.ts`: `pack`/`unpack` rewrite the file, which is only reliable for JSON. A JSON Schema generated from [types.ts](types.ts) provides IDE autocompletion; the TS types stay for the library.
+- [ ] **`environments` becomes a record in the MVP** (see [Types](#types)): the validator needs `protected` to know where plaintext secrets are forbidden. It is a breaking change, so it is done before the first release.
+- [ ] **A secret cannot have a shared `value`**, only per-environment `values`. This removes the open question of keeping per-environment copies in sync.
+- [ ] **Symmetric keys only.** Asymmetric keys come later as a new block format (`enc:v2:`); `enc:v1:` stays readable.
+- [ ] **Storage: git only**, blocks inline in the committed file.
+
+### In scope
+
+- [ ] Schema: the current `VarType` kinds plus `enum`; `value`/`values`, `required`/`allowEmpty` with `EnvCondition`, `sensitivity`, `exposure`, `description`, `example`.
+- [ ] `group`, `tags`, `aliases`, `deprecated` are accepted by the schema but have no runtime behavior (except the "`deprecated` together with `required` is an error" check).
+- [ ] Validator: every item in [Runtime checks](#runtime-checks) except `seed` and strict mode. Errors are loud: report all of them at once, each with the variable and the environment.
+- [ ] Encryption: AES-256-GCM, one block per environment, AAD with the environment name, `pending`/`encrypted` states.
+- [ ] Integrity: copies of `sensitivity` and `exposure` in each block. A different variable set in the schema and a block is an error (no interactive prompt).
+- [ ] A `version` counter in each block from the start, so rollback protection can be added later without changing the format.
+- [ ] CLI commands:
+  - `keygen <env>`: generate an environment key;
+  - `unpack <env>`: build the working file from the committed file;
+  - `pack`: encrypt `pending` values, re-encrypt only the blocks that changed;
+  - `check`: validate, no plaintext secrets in protected environments, the committed file is up to date (the same command runs in CI);
+  - `export <env>`: write a `.env` file; also generate `.env.example`.
+- [ ] Keys are read from an environment variable or from a file outside the repository.
+- [ ] Git hook: pre-commit only, it runs `check` and rejects the commit if the working file is staged. It does not build the committed file itself; it fails and tells the user to run `pack`.
+
+### If time permits
+
+- [ ] `import` from an existing `.env` file.
+- [ ] `rotate`. Until then rotation is manual: `unpack` with the old key, `pack` with the new one.
+
+### After the MVP
+
+- Asymmetric keys and signed blocks; rollback protection; `reference` values; generated values; `url`, `list` and `string` constraints; strict mode; the Docker image (init container); export to GitHub Actions secrets; storage backends other than git; interactive prompts; `aliases` behavior.
+
+## Backlog
+
 - [ ] In strict mode the fields `description`, `type`, `value`/`values`, `required`, `allowEmpty`, `sensitivity`, `exposure` are mandatory.
 - [ ] Add `value` `kind` concordance type check.
 - [ ] Different encryption keys for different environments 
@@ -139,7 +179,7 @@ type VarType =
 export type VarType =
   | { kind: "string"; minLength?: number; maxLength?: number; pattern?: string; startsWith?: string } // pattern follows JS RegExp syntax, must match the whole value, "u" flag
 ```
-- [ ] **After MVP:** turn `environments` into a record of per-environment settings. `environments` says how and where; `blob` holds what (the inline block, or the pinned hash of a block stored elsewhere).
+- [ ] **MVP:** turn `environments` into a record of per-environment settings. `environments` says how and where; `blob` holds what (the inline block, or the pinned hash of a block stored elsewhere).
 ```Typescript
 type EnvironmentSettings = {
   protected?: boolean;  // plaintext secrets forbidden, interactive prompts disabled
