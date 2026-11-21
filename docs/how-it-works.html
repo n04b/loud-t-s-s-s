@@ -156,6 +156,35 @@ textarea.code:disabled { color: var(--muted); }
 .foot { margin-top: 30px; color: var(--muted); font-size: 13.5px; max-width: 860px; }
 .nocrypto { display: none; margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: var(--err-soft); color: var(--err); }
 
+/* Types reference */
+.ref-bar { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; margin: 6px 0 14px; }
+.ref-nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.ref-nav a { text-decoration: none; color: var(--text); border: 1px solid var(--border); background: var(--surface);
+  border-radius: 999px; padding: 3px 11px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+.ref-nav a:hover { border-color: var(--accent); color: var(--accent); }
+.ref-nav a.post { color: var(--muted); border-style: dashed; }
+.tcards { display: grid; gap: 14px; }
+.tcard { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; scroll-margin-top: 16px; }
+.tcard:target { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.tcard.post { border-style: dashed; }
+.tcard h3 { margin: 0 0 6px; font-size: 17px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tcard h3 code { font-size: 16px; background: none; padding: 0; }
+.tcard > p { margin: 0 0 10px; max-width: 900px; }
+.sig { margin: 0 0 12px; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; font-size: 12.5px; line-height: 1.55; overflow-x: auto; white-space: pre; }
+.sig a, .tbl a { color: var(--accent); text-decoration: none; }
+.sig a:hover, .tbl a:hover { text-decoration: underline; }
+.tbl { overflow-x: auto; }
+.tbl table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
+.tbl th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 650; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.tbl td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl td code { overflow-wrap: anywhere; }
+.tbl td:first-child { white-space: nowrap; }
+.tbl tr.post td { color: var(--muted); }
+.tbl .pill { margin-left: 6px; font-size: 11px; padding: 1px 7px; vertical-align: 1px; }
+.tnote { margin: 10px 0 0; font-size: 14px; color: var(--muted); max-width: 900px; }
+.hide-post .post { display: none; }
+
 @media (max-width: 1020px) {
   .panes { grid-template-columns: 1fr; }
   .facts { grid-template-columns: 1fr; }
@@ -171,7 +200,7 @@ textarea.code:disabled { color: var(--muted); }
 <main>
   <h1>How loudTSSS works</h1>
   <p class="lead">loudTSSS keeps an app's environment config in one JSON file. The schema (variable names, types and metadata) is plain text in git. The values live in one AES-256-GCM block per environment, encrypted with that environment's key. This page runs the MVP workflow in your browser with real encryption (Web Crypto); nothing leaves the page.</p>
-  <p class="lead">Click a step: it runs against the files below and lights up its path. Then try to break it.</p>
+  <p class="lead">Click a step: it runs against the files below and lights up its path. Then try to break it. Every type and its fields are described in the <a href="#types">types reference</a> at the end.</p>
   <div class="nocrypto" id="nocrypto">Web Crypto is not available in this browser context, so the sandbox is hidden; the steps above still explain each command. Open the file directly (file://) or over https in a current Chrome, Firefox or Safari.</div>
 
   <div class="diagram" role="img" aria-label="Diagram: the CLI moves data between the environment keys, the working file, the committed file in git, the pre-commit hook, CI and the exported .env file for the app.">
@@ -267,6 +296,7 @@ textarea.code:disabled { color: var(--muted); }
       <footer>
         <button class="btn" id="h-pending">Change DATABASE_URL (pending)</button>
         <button class="btn" id="h-port">Set PORT to 70000</button>
+        <button class="btn" id="h-add">Add a variable</button>
         <button class="btn" id="h-discard">Discard changes</button>
       </footer>
     </section>
@@ -287,6 +317,19 @@ textarea.code:disabled { color: var(--muted); }
   <h2 class="sandbox">Try to break it</h2>
   <p class="lead sandbox">Each button changes <code>loudtsss.json</code> the way an attacker or a careless commit would. Then run unpack, commit, CI check or export and see what catches it.</p>
   <div class="attacks sandbox" id="attacks"></div>
+
+  <h2 id="types">Types reference</h2>
+  <p class="lead">Every type of the config, with its fields and allowed values. This describes the MVP design from TODO.md, which is ahead of <code>types.ts</code> (it does not have <code>enum</code>, the <code>environments</code> record or the file formats yet). Dashed cards and greyed rows come after the MVP.</p>
+  <div class="ref-bar">
+    <div class="seg" id="ref-filter">
+      <button data-ref="all" aria-pressed="true">Everything</button>
+      <button data-ref="mvp" aria-pressed="false">MVP only</button>
+    </div>
+  </div>
+  <div id="ref">
+    <nav class="ref-nav" id="ref-nav" aria-label="Types"></nav>
+    <div class="tcards" id="ref-cards"></div>
+  </div>
 
   <p class="foot">The file layout follows the MVP scope in TODO.md: a JSON config, <code>environments</code> as a record with <code>protected</code>, symmetric keys, blocks inline in git. The exact shape of the working file and of a block's plaintext (<code>version</code>, <code>values</code>, <code>meta</code>) is illustrative. In the demo every key is generated in memory when the page loads, and CI is assumed to hold the keys of all environments.</p>
 </main>
@@ -325,7 +368,7 @@ const STEPS = [
     title: "Unpack one environment",
     what: "Decrypts that environment's block and builds the working file: the schema plus this environment's values. Secrets stay in the block and appear as <code>{ \"kind\": \"encrypted\", \"state\": \"encrypted\" }</code>. The other blocks are not touched.",
     reads: ["<code>loudtsss.json</code>", "the environment's key"], writes: ["<code>loudtsss.local.json</code>"],
-    fails: ["the key is missing", "the block was modified, or moved from another environment (AES-GCM with the environment name as AAD)", "<code>sensitivity</code> or <code>exposure</code> in the schema differs from the copy in the block", "the schema and the block list different variables", "the working file has changes that are not packed yet"],
+    fails: ["the key is missing", "the block was modified, or moved from another environment (AES-GCM with the environment name as AAD)", "<code>sensitivity</code> or <code>exposure</code> in the schema differs from the copy in the block", "the working file has changes that are not packed yet"],
     demo: "Pick an environment above the panes, then press unpack." },
   { id: "edit", label: "edit", nodes: ["working"], edges: [],
     title: "Edit the working file",
@@ -337,7 +380,7 @@ const STEPS = [
     title: "Pack: validate and encrypt",
     what: "Validates the working file, moves pending values into the block and re-encrypts only the blocks whose content changed. Unchanged blocks keep their ciphertext, so they do not show up in git diffs.",
     reads: ["<code>loudtsss.local.json</code>", "keys"], writes: ["<code>loudtsss.json</code>", "the working file, with pending values replaced"],
-    fails: ["a value does not match its type (range, enum, email, empty, required)", "a secret is written in plaintext in a protected environment", "the variable list or a secret's <code>sensitivity</code>/<code>exposure</code> changes while a key of some environment is missing: every block keeps a copy", "the key is missing: the pending plaintext is removed from the working file"],
+    fails: ["a value does not match its type (range, enum, email, empty, required)", "a secret is written in plaintext in a protected environment", "a variable's <code>sensitivity</code> or <code>exposure</code> changes while a key of some environment is missing: blocks keep a copy. Adding or removing a variable needs only your key", "the key is missing: the pending plaintext is removed from the working file"],
     demo: "Try packing without changes: the block keeps its ciphertext. Then change a value and pack again." },
   { id: "commit", label: "commit", nodes: ["committed", "hook", "cli"], edges: ["committed-hook", "hook-cli"],
     title: "Commit: the pre-commit hook runs check",
@@ -394,7 +437,6 @@ const clone = (o) => JSON.parse(JSON.stringify(o));
 const sortKeys = (v) => Array.isArray(v) ? v.map(sortKeys) : v && typeof v === "object"
   ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sortKeys(v[k])])) : v;
 const stable = (v) => JSON.stringify(sortKeys(v));
-const metaOf = (schema) => Object.fromEntries(Object.entries(schema).map(([n, d]) => [n, { sensitivity: d.sensitivity, exposure: d.exposure }]));
 const randStr = (n) => { const a = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"; return Array.from(crypto.getRandomValues(new Uint8Array(n)), (x) => a[x % a.length]).join(""); };
 
 function inline(v) {
@@ -504,18 +546,22 @@ function validateSchema(schema) {
   }
   return errs;
 }
+// Only variables that are in the block are compared: a variable missing from a block is simply not set there.
 function integrity(env, block, schema) {
   const errs = [], meta = block.meta || {};
-  for (const n of Object.keys(schema)) if (!(n in meta)) errs.push(`${env}: ${n} is in the schema but not in the block`);
-  for (const n of Object.keys(meta)) if (!(n in schema)) errs.push(`${env}: ${n} is in the block but not in the schema`);
   for (const n of Object.keys(schema)) if (n in meta) for (const f of ["sensitivity", "exposure"])
     if (schema[n][f] !== meta[n][f]) errs.push(`${env}: ${n}.${f} is "${schema[n][f]}" in the schema but "${meta[n][f]}" in the block`);
   return errs;
 }
+const staleVars = (block, schema) => Object.keys(block.meta || {}).filter((n) => !(n in schema));
+function staleWarn(g, env, block, schema) {
+  for (const n of staleVars(block, schema)) add(g, "warn", `${env}: ${n} is in the block but no longer in the schema; ignored, and dropped on the next pack with the ${env} key`);
+}
+// The block keeps sensitivity/exposure only for the variables that have a value in it.
+const makeBlock = (version, values, schema) => ({ version, values, meta: Object.fromEntries(Object.keys(values).map((n) => [n, { sensitivity: schema[n].sensitivity, exposure: schema[n].exposure }])) });
+// Only sensitivity/exposure changes of existing variables touch other blocks; adding or removing a variable does not.
 function metaChanges(a, b) {
   const out = [];
-  for (const n of Object.keys(b)) if (!(n in a)) out.push(`+${n}`);
-  for (const n of Object.keys(a)) if (!(n in b)) out.push(`−${n}`);
   for (const n of Object.keys(b)) if (n in a) for (const f of ["sensitivity", "exposure"]) if (a[n][f] !== b[n][f]) out.push(`${n}.${f}`);
   return out;
 }
@@ -550,7 +596,8 @@ async function cmdUnpack() {
   const text = workingText(env, r.block);
   S.working = { env, text, synced: text };
   add(g, "ok", `decrypted the ${env} block (v${r.block.version}) with ${r.keyId}`);
-  add(g, "ok", "integrity: variable list, sensitivity and exposure match the schema");
+  add(g, "ok", "integrity: sensitivity and exposure in the block match the schema");
+  staleWarn(g, env, r.block, S.committed.variables);
   const secrets = Object.entries(S.committed.variables).filter(([n, d]) => d.sensitivity === "secret" && n in r.block.values).length;
   add(g, "ok", `wrote loudtsss.local.json; ${secrets} secret(s) stay in the block`);
   rollbackNote(g, env, r.block);
@@ -595,25 +642,29 @@ async function cmdPack() {
   errs.push(...validateSchema(schema), ...validateValues(env, values, schema));
   if (errs.length) { errs.forEach((e) => add(g, "err", e)); add(g, "err", `${errs.length} error(s): loudtsss.json not changed`); return false; }
 
-  const updates = {};
-  const changes = metaChanges(S.committed.variables, schema);
+  const updates = {}, later = [];
+  const prev = S.committed.variables;
+  const changes = metaChanges(prev, schema);
   if (changes.length) {
     const missing = ENVS.filter((e) => e !== env && !S.have[e]);
     if (missing.length) {
-      add(g, "err", `schema change ${changes.join(", ")}: every block keeps the variable list and each variable's sensitivity/exposure, so all blocks must be re-encrypted. Missing key(s): ${missing.join(", ")}`);
+      add(g, "err", `changed ${changes.join(", ")}: blocks keep a copy of sensitivity/exposure, and pack cannot tell which of them hold a value without decrypting them. Missing key(s): ${missing.join(", ")}`);
       return false;
     }
-    for (const e of ENVS.filter((x) => x !== env)) {
-      const r = await openBlock(e, (x) => S.have[x]);
-      if (r.err) { add(g, "err", r.err); return false; }
-      const nv = Object.fromEntries(Object.entries(r.block.values).filter(([n]) => n in schema));
-      const ve = validateValues(e, nv, schema);
-      if (ve.length) { ve.forEach((x) => add(g, "err", x)); add(g, "err", "loudtsss.json not changed"); return false; }
-      updates[e] = { version: r.block.version + 1, values: nv, meta: metaOf(schema), from: r.block.version };
-    }
   }
-  const nb = { version: old.block.version, values, meta: metaOf(schema) };
-  if (stable(nb.values) !== stable(old.block.values) || stable(nb.meta) !== stable(old.block.meta)) updates[env] = { ...nb, version: old.block.version + 1, from: old.block.version };
+  for (const n of Object.keys(schema)) if (!(n in prev)) add(g, "ok", `added ${n}: other environments treat it as not set until someone sets it there`);
+  for (const n of Object.keys(prev)) if (!(n in schema)) add(g, "ok", `removed ${n} from the schema`);
+  for (const e of ENVS.filter((x) => x !== env)) {
+    if (!S.have[e]) { later.push(e); continue; }
+    const r = await openBlock(e, (x) => S.have[x]);
+    if (r.err) { add(g, "err", r.err); return false; }
+    const nv = Object.fromEntries(Object.entries(r.block.values).filter(([n]) => n in schema));
+    const nb = makeBlock(r.block.version, nv, schema);
+    if (stable(nb) !== stable(r.block)) updates[e] = { ...nb, version: r.block.version + 1, from: r.block.version };
+    validateValues(e, nv, schema).forEach((x) => add(g, "warn", `${x} (check will fail until it is set)`));
+  }
+  const nb = makeBlock(old.block.version, values, schema);
+  if (stable(nb) !== stable(old.block)) updates[env] = { ...nb, version: old.block.version + 1, from: old.block.version };
 
   for (const [e, b] of Object.entries(updates)) {
     const { from, ...block } = b;
@@ -623,6 +674,7 @@ async function cmdPack() {
   S.committed.variables = schema;
   for (const e of ENVS) {
     if (updates[e]) add(g, "ok", `${e}: re-encrypted, v${updates[e].from} → v${updates[e].version}`);
+    else if (later.includes(e)) add(g, "note", `${e}: not touched, no key` + (Object.keys(prev).some((n) => !(n in schema)) ? "; removed variables stay in it until the next pack with its key" : ""));
     else add(g, "note", `${e}: unchanged, ciphertext kept`);
   }
   if (pending) add(g, "ok", `moved ${pending} pending value(s) into the ${env} block; the plaintext is gone from the working file`);
@@ -652,6 +704,7 @@ async function cmdCheck(mode) {
     const ee = [...integrity(e, r.block, C.variables), ...validateValues(e, r.block.values, C.variables)];
     ee.forEach((x) => add(g, "err", x)); n += ee.length;
     if (!ee.length) add(g, "ok", `${e}: block v${r.block.version} decrypted and valid`);
+    staleWarn(g, e, r.block, C.variables);
     rollbackNote(g, e, r.block);
   }
   if (n) { add(g, "err", hook ? `${n} error(s): commit rejected` : `${n} error(s): pipeline failed`); S[hook ? "hook" : "ci"] = "fail"; return false; }
@@ -789,7 +842,7 @@ function renderWorkingState() {
   if (!S.working) { w.textContent = "not unpacked"; w.className = "pill"; }
   else if (dirty()) { w.textContent = `${S.working.env} · not packed`; w.className = "pill warn"; }
   else { w.textContent = `${S.working.env} · in sync`; w.className = "pill ok"; }
-  $("h-pending").disabled = $("h-port").disabled = !S.working;
+  $("h-pending").disabled = $("h-port").disabled = $("h-add").disabled = !S.working;
   $("h-discard").disabled = !dirty();
 }
 
@@ -820,11 +873,10 @@ async function reset() {
     latest: {}, history: {}, out: null, hook: null, ci: null, commits: 0,
     log: [], active: null, results: {}, attacked: new Set(),
   };
-  const meta = metaOf(schema);
-  S.history.production = await encryptBlock("production", { version: 1, values: { ...VALUES.production, DATABASE_URL: "postgres://app:old-pass@old-prod-db:5432/app" }, meta });
+  S.history.production = await encryptBlock("production", makeBlock(1, { ...VALUES.production, DATABASE_URL: "postgres://app:old-pass@old-prod-db:5432/app" }, schema));
   for (const e of ENVS) {
     const version = e === "production" ? 2 : 1;
-    S.committed.blob[e] = await encryptBlock(e, { version, values: clone(VALUES[e]), meta });
+    S.committed.blob[e] = await encryptBlock(e, makeBlock(version, clone(VALUES[e]), schema));
     S.latest[e] = version;
   }
   prevCommitted = new Set(); shownWorking = null;
@@ -857,8 +909,189 @@ $("h-pending").addEventListener("click", () => editWorking((w) => {
   w.variables.DATABASE_URL.value = { kind: "encrypted", state: "pending", valueToEncrypt: `postgres://app:${randStr(10)}@${w.environment === "development" ? "localhost" : w.environment.slice(0, 4) + "-db"}:5432/app` };
 }));
 $("h-port").addEventListener("click", () => editWorking((w) => { if (w.variables.PORT) w.variables.PORT.value = 70000; }));
+$("h-add").addEventListener("click", () => editWorking((w) => { w.variables.FEATURE_X = { value: true, type: { kind: "bool" }, sensitivity: "public", exposure: "server", required: { in: ["development"] } }; }));
 $("h-discard").addEventListener("click", () => { if (!S.working) return; S.working.text = S.working.synced; render(); });
 $("reset").addEventListener("click", () => { if (!busy) reset(); });
+
+/* ---------- types reference ---------- */
+// Row helpers: R = MVP, P = after the MVP, O = open question.
+const R = (...c) => ({ c }), P = (...c) => ({ c, s: "post" }), O = (...c) => ({ c, s: "open" });
+const PROPS = ["Property", "Type", "Default", "Description"];
+const TYPES = [
+  { name: "Configuration", s: "mvp",
+    desc: "The whole config file, <code>loudtsss.json</code>. <code>Environment</code> is the union of the keys of <code>environments</code>.",
+    sig: "type Configuration<Environment extends string> = {\n  version: 1;\n  environments: Record<Environment, EnvironmentSettings>;\n  variables: Record<string, Variable<Environment>>;\n  blob?: Partial<Record<Environment, EncryptedBlock>>;\n};",
+    cols: PROPS, rows: [
+      R("version", "1", "required", "Schema version. Changes only on breaking changes to the file format."),
+      R("environments", "Record<Environment, EnvironmentSettings>", "required", "Every environment, keyed by name. A record instead of a list since the MVP, so duplicates are impossible and each environment has settings."),
+      R("variables", "Record<string, Variable>", "required", "Variable definitions, keyed by the environment variable's name."),
+      R("blob", "Partial<Record<Environment, EncryptedBlock>>", "—", "One encrypted block per environment with all of its values. Written by <code>pack</code>; never edit it by hand."),
+      P("blob[env]", "{ sha256: string }", "—", "Pinned hash of a block stored outside the file (see <code>storage</code>), so an old or foreign block cannot be loaded."),
+    ] },
+  { name: "EnvironmentSettings", s: "mvp",
+    desc: "Settings of one environment: how and where. What the environment holds lives in its block.",
+    sig: "type EnvironmentSettings = {\n  protected?: boolean;\n  keyId?: string;                       // after the MVP\n  storage?:                             // after the MVP\n    | { kind: \"inline\" }\n    | { kind: \"s3\"; bucket: string; path: string };\n};",
+    cols: PROPS, rows: [
+      R("protected", "boolean", "`false`", "Plaintext secrets are forbidden: in the working file a secret can only be written as <code>pending</code>. Interactive prompts are disabled, which is what you want in CI and the init container."),
+      P("keyId", "string", "—", "Default key of the environment."),
+      P("storage", "{ kind: \"inline\" } | { kind: \"s3\"; bucket: string; path: string }", "`{ kind: \"inline\" }`", "Where the block lives. The MVP keeps blocks inline in the file, in git."),
+    ] },
+  { name: "Variable", s: "mvp",
+    desc: "Definition of one environment variable. In <code>loudtsss.json</code> it carries metadata only; values live in the blocks.",
+    sig: "interface Variable<Environment extends string> {\n  type: VarType;\n  description?: string;\n  value?: Value;\n  values?: Partial<Record<Environment, Value>>;\n  required?: boolean | EnvCondition<Environment>;\n  allowEmpty?: boolean | EnvCondition<Environment>;\n  example?: string;\n  sensitivity?: Sensitivity;\n  exposure?: Exposure;\n  group?: string;\n  tags?: string[];\n  aliases?: string[];\n  deprecated?: Deprecation;\n}",
+    cols: PROPS, rows: [
+      R("type", "VarType", "required", "Value type and its constraints."),
+      R("description", "string", "—", "Human-readable description; goes to <code>.env.example</code> and docs."),
+      R("value", "Value", "—", "Working file only: the value for the unpacked environment. A secret shows up as <code>{ \"kind\": \"encrypted\", \"state\": \"encrypted\" }</code>. <code>check</code> rejects it in <code>loudtsss.json</code>."),
+      O("values", "Partial<Record<Environment, Value>>", "—", "Per-environment overrides from the design before blocks. <code>check</code> rejects it in <code>loudtsss.json</code>, and the working file holds a single environment, so it has no place in the MVP files. Keep it for authoring and import, or drop it."),
+      R("required", "boolean | EnvCondition", "`true`", "Whether the variable must have a value. <code>{ \"in\": [\"production\"] }</code> makes it required only there."),
+      R("allowEmpty", "boolean | EnvCondition", "`false`", "Whether <code>\"\"</code> counts as a value. <code>{ \"notIn\": [\"production\"] }</code> allows empty values everywhere except production."),
+      R("example", "string", "—", "Sample value for <code>.env.example</code> and docs. Never a real secret."),
+      R("sensitivity", "Sensitivity", "not set", "How sensitive the value is. Copied into every block that holds a value, so it cannot be changed without that environment's key. Mandatory in strict mode."),
+      R("exposure", "Exposure", "not set", "Where the value may be used. Copied into the blocks like <code>sensitivity</code>. Mandatory in strict mode."),
+      R("group", "string", "—", "Grouping for UI and docs, e.g. <code>\"database\"</code>. No runtime behavior."),
+      R("tags", "string[]", "—", "Free-form tags. No runtime behavior."),
+      R("aliases", "string[]", "—", "Old names kept after a rename. Accepted in the MVP; reading the old names at load time comes later."),
+      R("deprecated", "Deprecation", "—", "Marks the variable as deprecated. Together with <code>required</code> it is an error."),
+    ],
+    note: "Strict mode (after the MVP) makes <code>description</code>, <code>type</code>, <code>value</code>/<code>values</code>, <code>required</code>, <code>allowEmpty</code>, <code>sensitivity</code> and <code>exposure</code> mandatory." },
+  { name: "VarType", s: "mvp",
+    desc: "The type of a variable: a <code>kind</code> plus options. A value that does not match fails <code>pack</code>, <code>check</code>, <code>unpack</code> and <code>export</code>.",
+    sig: "type VarType =\n  | { kind: \"string\" }\n  | { kind: \"int\" | \"float\"; min?: number; max?: number }\n  | { kind: \"bool\" }\n  | { kind: \"port\" | \"duration\" | \"email\" | \"host\" }\n  | { kind: \"enum\"; values: string[]; ignoreCase?: boolean }\n  // after the MVP\n  | { kind: \"string\"; minLength?: number; maxLength?: number; pattern?: string; startsWith?: string }\n  | { kind: \"url\"; protocols?: string[] }\n  | { kind: \"list\"; of: ScalarKind; separator?: string };",
+    cols: ["kind", "Options", "Accepted value", "Example"], kinds: ["code", "md", "html", "code"], rows: [
+      R("string", "—", "any string", "\"hello\""),
+      R("int", "`min?: number`, `max?: number`", "integer within <code>min</code>…<code>max</code>", "4"),
+      R("float", "`min?: number`, `max?: number`", "number within <code>min</code>…<code>max</code>", "0.25"),
+      R("bool", "—", "<code>true</code> or <code>false</code>", "true"),
+      R("port", "—", "integer from 1 to 65535", "3000"),
+      R("duration", "—", "Go duration string", "\"5s\", \"1h30m\""),
+      R("email", "—", "email address", "\"support@example.com\""),
+      R("host", "—", "host name", "\"db.internal\""),
+      R("enum", "`values: string[]`, `ignoreCase?: boolean` (default `false`)", "one of <code>values</code>; case-sensitive by default", "\"warn\""),
+      P("string", "`minLength?`, `maxLength?: number`, `pattern?: string`, `startsWith?: string`", "string within the limits; <code>pattern</code> is a JS RegExp that must match the whole value, with the <code>u</code> flag", "\"sk_abc\""),
+      P("url", "`protocols?: string[]`", "URL with one of the protocols", "\"https://example.com\""),
+      P("list", "`of: ScalarKind`, `separator?: string` (default `\",\"`)", "items of kind <code>of</code>, joined by <code>separator</code>", "\"a,b,c\""),
+    ] },
+  { name: "ScalarKind", s: "post",
+    desc: "Kinds allowed as list items (<code>list.of</code>). Already in <code>types.ts</code>; used once <code>list</code> exists.",
+    sig: "type ScalarKind = \"string\" | \"int\" | \"float\" | \"url\" | \"email\" | \"host\";" },
+  { name: "EnvCondition", s: "mvp",
+    desc: "Limits a rule to some environments. Used by <code>required</code> and <code>allowEmpty</code>. Exactly one of the two fields; every name must be a key of <code>environments</code>.",
+    sig: "type EnvCondition<Environment extends string> =\n  | { in: Environment[]; notIn?: never }\n  | { notIn: Environment[]; in?: never };\n\n// required: { \"in\": [\"production\"] }       required only in production\n// allowEmpty: { \"notIn\": [\"production\"] }  empty allowed except in production",
+    cols: PROPS, rows: [
+      R("in", "Environment[]", "—", "Allowlist: the rule applies only in these environments."),
+      R("notIn", "Environment[]", "—", "Denylist: the rule applies everywhere except these environments."),
+    ] },
+  { name: "Value", s: "mvp",
+    desc: "A value in the working file: a JSON literal or an encrypted marker.",
+    sig: "type Value =\n  | string | number | boolean\n  | ValueEncrypted\n  // after the MVP\n  | ValueReference\n  | ValueGenerated;",
+    cols: ["Form", "Used for"], kinds: ["code", "html"], rows: [
+      R("string | number | boolean", "Non-secret values, and secrets in environments that are not <code>protected</code>. The JSON type must match <code>type.kind</code>: <code>80</code>, not <code>\"80\"</code>, for a port."),
+      R("ValueEncrypted", "Secrets: a marker for a value that is in the block, or a new value waiting to be encrypted."),
+      P("ValueReference", "A value kept in an external secret manager."),
+      P("ValueGenerated", "A value generated by the utility."),
+    ] },
+  { name: "ValueEncrypted", s: "mvp",
+    desc: "Marks a secret in the working file. The real value is never in this object, except briefly in <code>valueToEncrypt</code>.",
+    sig: "type ValueEncrypted =\n  | { kind: \"encrypted\"; state: \"encrypted\"; algorithm?: \"aes-256-gcm\"; keyId?: string }\n  | { kind: \"encrypted\"; state: \"pending\"; valueToEncrypt: string; algorithm?: \"aes-256-gcm\"; keyId?: string };",
+    cols: PROPS, rows: [
+      R("kind", "\"encrypted\"", "required", "Discriminator."),
+      R("state", "\"encrypted\" | \"pending\"", "required, no default", "<code>encrypted</code>: the value is in the block and the entry carries nothing. <code>pending</code>: plaintext in <code>valueToEncrypt</code>, moved into the block by the next <code>pack</code>. No default, so a missing <code>state</code> is never taken for plaintext."),
+      R("valueToEncrypt", "string", "only with `pending`", "Plaintext to encrypt. <code>pack</code> moves it into the block and replaces the entry with <code>state: \"encrypted\"</code>; without the key it deletes the plaintext and fails."),
+      R("algorithm", "\"aes-256-gcm\"", "`\"aes-256-gcm\"`", "The only option."),
+      R("keyId", "string", "the environment's default key", "Key for this value, for key rotation."),
+    ] },
+  { name: "ValueReference", s: "post",
+    desc: "A value stored in an external secret manager and fetched at load time.",
+    sig: "interface ValueReference {\n  kind: \"reference\";\n  provider: \"vault\" | \"aws-secrets-manager\" | \"gcp-secret-manager\" | \"1password\";\n  path: string;\n  field?: string;\n  version?: string;\n}",
+    cols: PROPS, rows: [
+      P("kind", "\"reference\"", "required", "Discriminator."),
+      P("provider", "\"vault\" | \"aws-secrets-manager\" | \"gcp-secret-manager\" | \"1password\"", "required", "Secret manager."),
+      P("path", "string", "required", "Secret location, e.g. <code>\"secret/data/db\"</code> or <code>\"op://vault/item\"</code>."),
+      P("field", "string", "the whole secret", "Field inside a multi-field secret."),
+      P("version", "string", "latest", "Pinned secret version."),
+    ] },
+  { name: "ValueGenerated", s: "post",
+    desc: "A value the utility generates. Same <code>seed</code>, same value.",
+    sig: "type ValueGenerated = RandomGen | UuidGen;\n\ninterface RandomGen { kind: \"random\"; length: number; charset?: string; seed?: string }\ninterface UuidGen   { kind: \"uuid\"; seed?: string }",
+    cols: PROPS, rows: [
+      P("kind", "\"random\" | \"uuid\"", "required", "<code>random</code>: a random string; <code>uuid</code>: a UUID."),
+      P("length", "number", "required for `random`", "Length of the random string."),
+      P("charset", "string", "—", "Characters to pick from (<code>random</code> only)."),
+      P("seed", "string", "—", "Makes the result deterministic. A <code>seed</code> on a variable with <code>sensitivity: \"secret\"</code> is an error."),
+    ] },
+  { name: "Sensitivity", s: "mvp",
+    desc: "Field <code>Variable.sensitivity</code>; inline in <code>types.ts</code>, named here for reference.",
+    sig: "type Sensitivity = \"public\" | \"internal\" | \"secret\";",
+    cols: ["Value", "Meaning"], kinds: ["code", "html"], rows: [
+      R("\"public\"", "May be shown anywhere, e.g. a support email."),
+      R("\"internal\"", "Not a secret, but not meant for the public, e.g. internal settings."),
+      R("\"secret\"", "Credentials and tokens. Shown as <code>{ \"state\": \"encrypted\" }</code> in the working file; in <code>protected</code> environments written only as <code>pending</code>; can never have <code>exposure: \"client\"</code>."),
+    ] },
+  { name: "Exposure", s: "mvp",
+    desc: "Field <code>Variable.exposure</code>; inline in <code>types.ts</code>, named here for reference.",
+    sig: "type Exposure = \"server\" | \"client\" | \"build\";",
+    cols: ["Value", "Meaning"], kinds: ["code", "html"], rows: [
+      R("\"server\"", "Available to server-side code only."),
+      R("\"client\"", "May end up in client code, e.g. a browser bundle. Forbidden for secrets."),
+      R("\"build\"", "Needed at build time."),
+    ] },
+  { name: "Deprecation", s: "mvp",
+    desc: "Field <code>Variable.deprecated</code>; inline in <code>types.ts</code>. A deprecated variable cannot be <code>required</code>.",
+    sig: "type Deprecation = { since?: string; replacedBy?: string; message?: string };",
+    cols: PROPS, rows: [
+      R("since", "string", "—", "Version or date since which it is deprecated."),
+      R("replacedBy", "string", "—", "Name of the variable to use instead."),
+      R("message", "string", "—", "Free text shown to the user."),
+    ] },
+  { name: "EncryptedBlock", s: "mvp",
+    desc: "A value of <code>blob</code>: all values of one environment, encrypted with AES-256-GCM using that environment's key.",
+    sig: "type EncryptedBlock = `enc:v1:${keyId}:${base64}`;\n\n// AAD = JSON.stringify([\"loud-t-s-s-s/1\", environment])",
+    cols: ["Part", "Meaning"], kinds: ["code", "html"], rows: [
+      R("enc:v1", "Format version. A new version (e.g. <code>v2</code> for asymmetric keys) can be added while <code>v1</code> stays readable."),
+      R("keyId", "Which key encrypted the block."),
+      R("base64", "IV (12 bytes), ciphertext and GCM tag (16 bytes). The byte layout is the demo's; the tool has not fixed it yet."),
+      R("AAD", "Additional authenticated data: the environment name. A block moved into another environment fails authentication."),
+    ] },
+  { name: "BlockPayload", s: "mvp", illus: true,
+    desc: "What an EncryptedBlock holds once decrypted. The shape is illustrative: TODO.md fixes what goes in, not the field names.",
+    sig: "type BlockPayload = {\n  version: number;\n  values: Record<string, string | number | boolean>;\n  meta: Record<string, { sensitivity?: Sensitivity; exposure?: Exposure }>;\n};",
+    cols: PROPS, rows: [
+      R("version", "number", "required", "Counter, +1 each time the block changes. Rollback protection will use it after the MVP."),
+      R("values", "Record<string, string | number | boolean>", "required", "All values of the environment, public and secret. A variable missing here is not set in this environment."),
+      R("meta", "Record<string, { sensitivity, exposure }>", "required", "Copies of <code>sensitivity</code> and <code>exposure</code> for each variable in <code>values</code>; compared with the schema on load."),
+    ] },
+  { name: "WorkingFile", s: "mvp", illus: true,
+    desc: "<code>loudtsss.local.json</code>: the config unpacked for one environment. Gitignored. The shape is illustrative.",
+    sig: "type WorkingFile<Environment extends string> = {\n  environment: Environment;\n  variables: Record<string, Variable<Environment> & { value?: Value }>;\n};",
+    cols: PROPS, rows: [
+      R("environment", "Environment", "required", "The unpacked environment; <code>pack</code> writes into its block."),
+      R("variables", "Record<string, Variable & { value?: Value }>", "required", "The schema with this environment's values. Adding or removing a variable here needs only this environment's key; changing <code>sensitivity</code>/<code>exposure</code> needs every key."),
+    ] },
+];
+const TYPE_NAMES = TYPES.map((t) => t.name).sort((a, b) => b.length - a.length);
+const typeRe = new RegExp(`\\b(${TYPE_NAMES.join("|")})\\b`, "g");
+const linkify = (s) => esc(s).replace(typeRe, (m) => `<a href="#t-${m}">${m}</a>`);
+const md = (s) => esc(s).split("`").map((part, i) => i % 2 ? `<code>${part.replace(typeRe, (m) => `<a href="#t-${m}">${m}</a>`)}</code>` : part).join("");
+const STATUS_PILL = { post: '<span class="pill">after MVP</span>', open: '<span class="pill warn">open question</span>' };
+
+function renderRef() {
+  $("ref-nav").innerHTML = TYPES.map((t) => `<a href="#t-${t.name}" class="${t.s === "post" ? "post" : ""}">${t.name}</a>`).join("");
+  $("ref-cards").innerHTML = TYPES.map((t) => {
+    const kinds = t.kinds || ["code", "code", "md", "html"];
+    const cell = (v, k) => k === "code" ? `<code>${linkify(v)}</code>` : k === "md" ? md(v) : v;
+    const table = t.rows ? `<div class="tbl"><table><thead><tr>${t.cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${t.rows.map((r) =>
+      `<tr class="${r.s || ""}">${r.c.map((v, i) => `<td>${cell(v, kinds[i])}${i === 0 && r.s ? STATUS_PILL[r.s] : ""}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : "";
+    const pills = (t.s === "post" ? STATUS_PILL.post : '<span class="pill ok">MVP</span>') + (t.illus ? ' <span class="pill warn">illustrative</span>' : "");
+    return `<article class="tcard ${t.s === "post" ? "post" : ""}" id="t-${t.name}"><h3><code>${t.name}</code>${pills}</h3><p>${t.desc}</p><pre class="sig">${linkify(t.sig)}</pre>${table}${t.note ? `<p class="tnote">${t.note}</p>` : ""}</article>`;
+  }).join("");
+}
+$("ref-filter").addEventListener("click", (ev) => {
+  const b = ev.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#ref-filter button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  $("ref").classList.toggle("hide-post", b.dataset.ref === "mvp");
+});
+renderRef();
 
 if (window.crypto && crypto.subtle) reset();
 else {

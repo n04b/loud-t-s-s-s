@@ -18,7 +18,7 @@ The MVP covers one workflow: describe variables in one file, validate them, keep
 - [ ] `group`, `tags`, `aliases`, `deprecated` are accepted by the schema but have no runtime behavior (except the "`deprecated` together with `required` is an error" check).
 - [ ] Validator: every item in [Runtime checks](#runtime-checks) except `seed` and strict mode. Errors are loud: report all of them at once, each with the variable and the environment.
 - [ ] Encryption: AES-256-GCM, one block per environment, AAD with the environment name, `pending`/`encrypted` states.
-- [ ] Integrity: copies of `sensitivity` and `exposure` in each block. A different variable set in the schema and a block is an error (no interactive prompt).
+- [ ] Integrity: copies of `sensitivity` and `exposure` in each block, compared with the schema. The variable list is compared loosely: a variable missing from a block is not set there, an extra one is a warning (see [Integrity checks](#integrity-checks)).
 - [ ] A `version` counter in each block from the start, so rollback protection can be added later without changing the format.
 - [ ] CLI commands:
   - `keygen <env>`: generate an environment key;
@@ -111,8 +111,12 @@ Taking all decisions into account, the validator needs to check:
 
 ### Integrity checks
 
-- [ ] Each block stores a copy of `sensitivity` and `exposure` for every variable; on load they are compared with the schema and a mismatch is an error. This stops editing a secret's `exposure`/`sensitivity` in the plaintext schema without the environment key.
-- [ ] If the set of variables in the schema and in a block differ, show a warning and ask the user what to do. In non-interactive mode (CI, init container) this is an error.
+- [ ] Each block stores a copy of `sensitivity` and `exposure` for every variable that has a value in it; on load they are compared with the schema and a mismatch is an error. This stops editing a secret's `exposure`/`sensitivity` in the plaintext schema without the environment key.
+- [ ] The variable list is **not** compared strictly, so adding or removing a variable does not need the keys of every environment:
+  - a variable in the schema but not in a block is **not set** in that environment; this is not an integrity error, but `required` still applies, so a required variable fails validation until someone with that environment's key sets it;
+  - a variable in a block but not in the schema is a **warning**: it is ignored on load and dropped on the next `pack` with that environment's key;
+  - attack check: removing a secret from the schema and re-adding it as `public`/`client` is still caught, because the block keeps its value and the copies of `sensitivity`/`exposure`.
+- [ ] Changing `sensitivity` or `exposure` of an existing variable still needs the keys of all environments: `pack` cannot tell which blocks hold a value for it without decrypting them.
 
 ### Open questions
 
